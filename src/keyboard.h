@@ -20,6 +20,8 @@
 
 #ifndef __mousepad_keyboard_h__
 
+#include "mousepad.h"
+
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -27,6 +29,7 @@
 
 int keyboard_init(Display *d);
 void keyboard_press(unsigned key);
+void keyboard_event();
 
 #endif /* __mousepad_keyboard_h__ */
 
