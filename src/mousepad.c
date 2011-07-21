@@ -47,13 +47,9 @@
 /******************************************************/
 
 /* Motion, Button Constants */
-#define MOTION_DAMP 1.0
-#define POINTER_MOVEMENT_DELAY_MILLISECONDS 10
 #define INPUT_DELAY_MILLISECONDS 20
 #define JUMP_DELAY_MILLISECONDS 100
 #define DOUBLE_TAP_TIME_MILLISECONDS 160
-#define VELOCITY_MAX 30.0
-#define INITIAL_VELOCITY 2
 
 /* Keyboard states */
 #define KEYBOARD_STATE_NONE 0
@@ -71,14 +67,6 @@
 #define DISTANCE_FROM_CORNER 20
 
 /******************************************************/
-
-/* The pointer (mouse cursor) */
-struct pntr
-{
-	signed int x,y; /* respective coordinates. */
-	float xVel, yVel;
-	float xAccel, yAccel;
-} pointer; /* global pointer */
 
 /* Structure for each button */
 struct btn
@@ -263,12 +251,6 @@ int main (int argc, char *argv[])
 	struct js_event jevent; /* Joystick event */
 	int numButtons = 0; /* Number of buttons on the joystick */
 	struct btn *button = NULL; /* Stores the properties of each button */
-	int i, n; /* Standard iterators for C88 */
-	struct timespec startTime; /* The time at which the motion started (used to calculate delta) */
-	struct timespec lastTime; /* The time of the last mouse movement, used to maintain the rate of change */
-	struct timespec currentTime; /* Temporary holder for the current time */
-	int numButtonsPushed = 0; /* Iterator for individual button press logic */
-	int buttonCombo = 0; /* Whether a combination was pressed or not. Used to prevent duplicate events. */
 	FILE *configfile;
 	struct btnconfig padconfig; /* Stores configuration file options: left, up, right, down, etc. */
 	//pthread_t keyboardThread;
@@ -276,7 +258,7 @@ int main (int argc, char *argv[])
 	gtk_init(&argc, &argv);
 	
 	/* Handle arguments manually without getopt(). */
-	if (argc > 2) /* zu viele! */
+	if (argc > 2)
 	{
 		fprintf(stderr, PROGRAM_NAME": Too many arguments.\n"); 
 		return 1;
@@ -347,6 +329,8 @@ int main (int argc, char *argv[])
 				break;
 			}
 
+			int changed = 0;
+
 			if ((jevent.type & ~JS_EVENT_INIT) == JS_EVENT_BUTTON)
 			{
 				/* If change in state */
@@ -366,216 +350,59 @@ int main (int argc, char *argv[])
 
 					button[jevent.number].state = jevent.value;
 				}
+
+				/*
+				 * Translate jevent.number to the button bitfield.
+				 * This is a temporary hack because I feel lazy.
+				 */
+				if (jevent.number == padconfig.left)
+					changed = BUTTON_LEFT;
+				else if (jevent.number == padconfig.upleft)
+					changed = BUTTON_UPLEFT;
+				else if (jevent.number == padconfig.up)
+					changed = BUTTON_UP;
+				else if (jevent.number == padconfig.upright)
+					changed = BUTTON_UPRIGHT;
+				else if (jevent.number == padconfig.right)
+					changed = BUTTON_RIGHT;
+				else if (jevent.number == padconfig.downright)
+					changed = BUTTON_DOWNRIGHT;
+				else if (jevent.number == padconfig.down)
+					changed = BUTTON_DOWN;
+				else if (jevent.number == padconfig.downleft)
+					changed = BUTTON_DOWNLEFT;
+				else if (jevent.number == padconfig.start)
+					changed = BUTTON_START;
+				else if (jevent.number == padconfig.back)
+					changed = BUTTON_BACK;
 			}
 
-			
-			/* Process Events */
+			/* 
+			 * Translate this stupid state to buttons/changed.
+			 * This is a temporary hack because I feel lazy.
+			 */
+			buttonstate_t buttons = 0;
 
-			/* The choice was made to separate keyboard and mouse modes
-			   to maintain the general organized nature of the code.
-			   This leads to some redundancy, but improves maintenance. */
+			buttons |= button[padconfig.left].state ? BUTTON_LEFT : 0;
+			buttons |= button[padconfig.upleft].state ? BUTTON_UPLEFT : 0;
+			buttons |= button[padconfig.up].state ? BUTTON_UP : 0;
+			buttons |= button[padconfig.upright].state ? BUTTON_UPRIGHT : 0;
+			buttons |= button[padconfig.right].state ? BUTTON_RIGHT : 0;
+			buttons |= button[padconfig.downright].state ? BUTTON_DOWNRIGHT : 0;
+			buttons |= button[padconfig.down].state ? BUTTON_DOWN : 0;
+			buttons |= button[padconfig.downleft].state ? BUTTON_DOWNLEFT : 0;
+			buttons |= button[padconfig.start].state ? BUTTON_START : 0;
+			buttons |= button[padconfig.back].state ? BUTTON_BACK : 0;
+
+
+			/* Process Events */
 
 			/* Mouse Mode */
 			if (mode == 0)
 			{
-
-				/* Individual Button Pushes */
-				for (i = 0; i < numButtons; i++)
-				{
-					/* Force a delay */
-					clock_gettime(CLOCK_REALTIME, &currentTime);
-					if (diffMilliseconds(currentTime, button[i].pressedTime) <= INPUT_DELAY_MILLISECONDS || button[i].processed == 1)
-					{
-						continue;
-					}
-					
-					/* Handle the different keys */
-					if (i == padconfig.left)
-					{
-						if (button[i].state == 1 && button[padconfig.right].state == 0)
-						{
-							pointer.xAccel = -1;
-							pointer.xVel = -INITIAL_VELOCITY;
-						} else if (button[i].state == 0 && button[padconfig.right].state  == 1) {
-							pointer.xAccel = 1;
-							pointer.xVel = INITIAL_VELOCITY;
-						} else {
-							pointer.xAccel = 0;
-							pointer.xVel = 0;
-						}
-					}
-					else if (i == padconfig.upleft)
-					{
-						if (button[i].state == 1)
-						{
-							/* This can be the only button pressed. */
-							for (n = 0; n < numButtons; n++)
-							{
-								if (button[n].state == 1)
-								{
-									numButtonsPushed += 1;
-								}
-							}
-							
-							if (numButtonsPushed == 1)
-							{
-								mouse_close_focused_window();
-							}
-						}
-					}
-					else if (i == padconfig.up)
-					{
-						if (button[i].state == 1 && button[padconfig.down].state == 0)
-						{
-							pointer.yAccel = -1;
-							pointer.yVel = -INITIAL_VELOCITY;
-						} else if (button[i].state == 0 && button[padconfig.down].state == 1) {
-							pointer.yAccel = 1;
-							pointer.yVel = INITIAL_VELOCITY;
-						} else {
-							pointer.yAccel = 0;
-							pointer.yVel = 0;
-						}
-					}
-					else if (i == padconfig.upright)
-					{
-						if (button[i].state == 1)
-						{
-							/* This can be the only button pressed. */
-							for (n = 0; n < numButtons; n++)
-							{
-								if (button[n].state == 1)
-								{
-									numButtonsPushed += 1;
-								}
-							}
-							
-							if (numButtonsPushed == 1)
-							{
-								keyboard_press(XK_Page_Up);
-							}
-						}
-					}
-					else if (i == padconfig.right)
-					{
-						if (button[i].state == 1 && button[padconfig.left].state  == 0)
-						{
-							pointer.xAccel = 1;
-							pointer.xVel = INITIAL_VELOCITY;
-						} else if (button[i].state == 0 && button[padconfig.left].state  == 1) {
-							pointer.xAccel = -1;
-							pointer.xVel = -INITIAL_VELOCITY;
-						} else {
-							pointer.xAccel = 0;
-							pointer.xVel = 0;
-						}
-					}
-					else if (i == padconfig.downright)
-					{
-						if (button[i].state == 1)
-						{
-							/* This can be the only button pressed. */
-							for (n = 0; n < numButtons; n++)
-							{
-								if (button[n].state == 1)
-								{
-									numButtonsPushed += 1;
-								}
-							}
-							
-							if (numButtonsPushed == 1)
-							{
-								keyboard_press(XK_Page_Down);
-							}
-						}
-					}
-					else if (i == padconfig.down)
-					{
-						if (button[i].state == 1 && button[padconfig.up].state  == 0)
-						{
-							pointer.yAccel = 1;
-							pointer.yVel = INITIAL_VELOCITY;
-						} else if (button[i].state == 0 && button[padconfig.up].state  == 1) {
-							pointer.yAccel = -1;
-							pointer.yVel = -INITIAL_VELOCITY;
-						} else {
-							pointer.yAccel = 0;
-							pointer.yVel = 0;
-						}
-					}
-					else if (i == padconfig.start)
-					{
-						if (button[i].state == 1)
-						{
-							/* Zero the mouse motion */
-							pointer.xVel = 0;
-							pointer.yVel = 0;
-							pointer.xAccel = 0;
-							pointer.yAccel = 0;
-							
-							/* Set keyboard mode */
-							mouse_end();
-							mode = 1;
-						}
-					}
-
-					clock_gettime(CLOCK_REALTIME, &startTime);
-					button[i].processed = 1;
-					numButtonsPushed = 0;
-
-					/* A button has just been depressed, and a jump combo broken */
-					if (button[i].state == 0) {
-						buttonCombo = 0;
-					}
-					
-				}
-		
-				/* Button Combinations */
-				if (button[padconfig.left].state  == 1 && button[padconfig.right].state  == 1 &&
-					diffMilliseconds(button[padconfig.left].pressedTime, button[padconfig.right].pressedTime) <= JUMP_DELAY_MILLISECONDS &&
-					buttonCombo == 0)
-				{
-					mouse_click(MOUSE_BUTTON_LEFT);
-					buttonCombo = 1;
-				}
-		
-				if (button[padconfig.up].state  == 1 && button[padconfig.down].state == 1 &&
-					diffMilliseconds(button[padconfig.up].pressedTime, button[padconfig.down].pressedTime) <= JUMP_DELAY_MILLISECONDS &&
-					buttonCombo == 0)
-				{
-					mouse_click(MOUSE_BUTTON_RIGHT);
-					buttonCombo = 1;
-				}
-				
-				/* Movement Logic */
-				if (pointer.xAccel != 0 || pointer.yAccel != 0)
-				{
-					clock_gettime(CLOCK_REALTIME, &currentTime);
-					if (diffMilliseconds(currentTime, lastTime) >= POINTER_MOVEMENT_DELAY_MILLISECONDS)
-					{
-						if (abs((int)pointer.xVel) >= (int)VELOCITY_MAX)
-						{
-							pointer.xVel = VELOCITY_MAX*pointer.xAccel;
-						}
-						else if (pointer.xAccel != 0)
-						{
-							pointer.xVel += pointer.xAccel*((float)diffMilliseconds(currentTime, startTime)/1000.0*MOTION_DAMP);
-						}
-		
-						if (abs((int)pointer.yVel) >= (int)VELOCITY_MAX)
-						{
-							pointer.yVel = VELOCITY_MAX*pointer.yAccel;
-						}
-						else if (pointer.yAccel != 0)
-						{
-							pointer.yVel += pointer.yAccel*((float)diffMilliseconds(currentTime, startTime)/1000.0*MOTION_DAMP);
-						}
-						
-						mouse_move((int)pointer.xVel, (int)pointer.yVel);
-						clock_gettime(CLOCK_REALTIME, &lastTime);
-					}
-				}
-
+				if (changed)
+					mouse_event(buttons, changed);
+				mouse_tick();
 			}
 #if 0
 			/* Keyboard Mode */

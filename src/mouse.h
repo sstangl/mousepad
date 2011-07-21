@@ -42,6 +42,7 @@ void mouse_end();
 void mouse_move(int xdelta, int ydelta);
 void mouse_click(unsigned button);
 void mouse_close_focused_window();
+void mouse_tick();
 void mouse_event(buttonstate_t buttons, button_t changed);
 
 #endif /* __mousepad_mouse_h__ */

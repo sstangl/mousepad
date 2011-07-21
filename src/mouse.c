@@ -153,6 +153,8 @@ void mouse_tick()
 /* Handle a mouse event by performing an action or changing mouse state. */
 void mouse_event(buttonstate_t buttons, button_t changed)
 {
+	if (!changed) return;
+
 	/* Press left and right buttons at the same time to left-click. */
 	if (buttons == (BUTTON_LEFT | BUTTON_RIGHT) &&
 	    (changed & (BUTTON_LEFT | BUTTON_RIGHT))) {
@@ -169,7 +171,7 @@ void mouse_event(buttonstate_t buttons, button_t changed)
 
 	/* Press the up-left button (and no other button) to close the window. */
 	if (buttons == BUTTON_UPLEFT && changed == BUTTON_UPLEFT) {
-		// TODO: close focused window.
+		mouse_close_focused_window();
 		return;
 	}
 
