@@ -109,7 +109,7 @@ char shiftPressed = False;
 
 /* State of the keyboard mechanism, global. */
 char keyboardState = KEYBOARD_STATE_NONE;
-static pthread_mutex_t stateMutex = PTHREAD_MUTEX_INITIALIZER;
+//static pthread_mutex_t stateMutex = PTHREAD_MUTEX_INITIALIZER;
 
 char mode = 0; /* Boolean mode. 0 if mouse mode, 1 if keyboard mode. Toggled by Start. */
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
@@ -153,6 +153,7 @@ int getMilliseconds (struct timespec time)
 	return (1000*time.tv_sec + time.tv_nsec/1000000);
 }
 
+#if 0
 /* Thread for the GTK-based keyboard indicator */
 void *gtkThreadMain()
 {
@@ -289,6 +290,7 @@ void *gtkThreadMain()
 	
 	pthread_exit(NULL);
 }
+#endif
 
 
 int main (int argc, char *argv[])
@@ -308,7 +310,7 @@ int main (int argc, char *argv[])
 	char *configpath;
 	struct btnconfig padconfig; /* Stores configuration file options: left, up, right, down, etc. */
 	char tmpchar;
-	pthread_t keyboardThread;
+	//pthread_t keyboardThread;
 	
 	gtk_init(&argc, &argv);
 	
@@ -364,7 +366,7 @@ int main (int argc, char *argv[])
 	}
 	
 	/* Zero the memory */
-	memset (&padconfig, '\0', sizeof( struct btnconfig ));
+	memset(&padconfig, 0x0, sizeof(struct btnconfig));
 
 	/* Set padconfig from config file */
 	for (i = 0; feof(configfile) == 0; i++)
@@ -407,12 +409,14 @@ int main (int argc, char *argv[])
 
 	fclose(configfile);
 	
+#if 0
 	/* Create the Keyboard Indicator thread */
 	pthread_create(&keyboardThread, NULL, gtkThreadMain, NULL);
 	
 	/* Wait for the GTK thread to initialize before continuing */
 	pthread_mutex_lock(&stateMutex);
 	pthread_cond_wait(&cond, &stateMutex);
+#endif
 	
 	/* Loop until an available joystick is found */
 	while (1)
@@ -673,15 +677,13 @@ int main (int argc, char *argv[])
 							pointer.yVel += pointer.yAccel*((float)diffMilliseconds(currentTime, startTime)/1000.0*MOTION_DAMP);
 						}
 						
-						//printf("C: %d , S: %d, D: %i, TD: %i xVel:%f\n", (int)((abs(currentTime.tv_sec)*1000)+abs(((currentTime.tv_nsec)/1000000))), (int)((abs(startTime.tv_sec)*1000)+abs(((startTime.tv_nsec)/1000000))), diffMilliseconds(currentTime, startTime), (int)((abs(currentTime.tv_sec)*1000)+abs(((currentTime.tv_nsec)/1000000))) - (int)((abs(startTime.tv_sec)*1000)+abs(((startTime.tv_nsec)/1000000))), pointer.xVel);
-		
 						mouse_move((int)pointer.xVel, (int)pointer.yVel);
 						clock_gettime(CLOCK_REALTIME, &lastTime);
 					}
 				}
 
 			}
-
+#if 0
 			/* Keyboard Mode */
 			else
 			{
@@ -1015,6 +1017,7 @@ int main (int argc, char *argv[])
 				}
 				
 			}
+#endif
 
 			/* Powernap */
 			usleep(5000);

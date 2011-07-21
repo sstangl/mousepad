@@ -20,19 +20,31 @@
 
 #include "mouse.h"
 
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/XTest.h>
 
 #define MOTION_DAMP 1.0
+#define MOUSE_DELAY_MILLISECONDS 10
 #define MOUSE_MAX_VELOCITY 30.0
 #define MOUSE_VELOCITY 2
 #define MOUSE_ACCELERATION 1
 
 mouse_t mouse;
 Display *display;
+
+struct timespec prevtime;  // Time since last mouse_tick().
+
+/* Returns the difference in milliseconds between two times. */
+static int millidiff(struct timespec time, struct timespec prev)
+{
+	return abs(((time.tv_sec  - prev.tv_sec)  * 1000) +
+	           ((time.tv_nsec - prev.tv_nsec) / 1000000));
+}
 
 /*
  * Begin mouse mode.
@@ -42,6 +54,7 @@ void mouse_begin()
 {
 	display = XOpenDisplay(NULL);
 	memset(&mouse, 0x0, sizeof(mouse_t));
+	clock_gettime(CLOCK_REALTIME, &prevtime); // To initialize.
 }
 
 /* End mouse mode. */
@@ -92,7 +105,43 @@ void mouse_close_focused_window()
 		XDestroyWindow(display, focused);
 }
 
-/* Handle a mouse event. */
+/* Handle a tick event by moving the cursor if necessary. */
+void mouse_tick()
+{
+	if (mouse.xa == 0 && mouse.ya == 0)
+		return;
+
+	/* Time-based delay. */
+	struct timespec time;
+	clock_gettime(CLOCK_REALTIME, &time);
+	if (millidiff(time, prevtime) < MOUSE_DELAY_MILLISECONDS)
+		return;
+
+	/* Update velocities. */
+	float curve = ((float)millidiff(time, prevtime))/1000.0*MOTION_DAMP;
+
+	if (mouse.xa == 0)
+		mouse.xv = 0;
+	else
+		mouse.xv += mouse.xa * curve;
+
+	if (mouse.ya == 0)
+		mouse.yv = 0;
+	else
+		mouse.yv += mouse.ya * curve;
+
+	/* Cap velocities. */
+	if (abs((int)mouse.xv) > MOUSE_MAX_VELOCITY)
+		mouse.xv = MOUSE_MAX_VELOCITY;
+	if (abs((int)mouse.yv) > MOUSE_MAX_VELOCITY)
+		mouse.yv = MOUSE_MAX_VELOCITY;
+
+	/* Handle movement. */
+	mouse_move((int)mouse.xv, (int)mouse.yv);
+	prevtime = time;
+}
+
+/* Handle a mouse event by performing an action or changing mouse state. */
 void mouse_event(buttonstate_t buttons, button_t changed)
 {
 	/* Press left and right buttons at the same time to left-click. */
