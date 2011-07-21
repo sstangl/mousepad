@@ -1,4 +1,7 @@
 /*
+ * mousepad-config.c
+ * Copyright Sean Stangl <sean.stangl@gmail.com> 2005-2011
+ *
  * This file is part of Mousepad.
  *
  * Mousepad is free software: you can redistribute it and/or modify

@@ -1,6 +1,6 @@
 /*
  * Mousepad
- * Copyright Sean Stangl <sean.stangl@gmail.com> 2005-2010
+ * Copyright Sean Stangl <sean.stangl@gmail.com> 2005-2011
  *
  * This file is part of Mousepad.
  *
@@ -22,6 +22,9 @@
 #define VERSION_NUMBER "0.3"
 
 #define CONFIG_FILENAME "mousepad.conf"
+
+#include "keyboard.h"
+#include "mouse.h"
 
 #include <pthread.h>
 
@@ -112,62 +115,6 @@ char mode = 0; /* Boolean mode. 0 if mouse mode, 1 if keyboard mode. Toggled by 
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 /******************************************************/
-
-/* Moves the pointer relatively */
-void movePointer (signed int xdist, signed int ydist)
-{
-
-	Display *display = XOpenDisplay(NULL);
-
-	/* Garbage variables */
-	Window tmpwindow;
-	unsigned int tmp;
-	signed int tmp2;
-
-	/* Obtain the pointer's position. */
-	XQueryPointer(display, RootWindow(display, DefaultScreen(display)), &tmpwindow, &tmpwindow, &pointer.x,
-		&pointer.y, &tmp2, &tmp2, &tmp);
-
-	/* Move the pointer. */
-	XWarpPointer(display, None, RootWindow(display, DefaultScreen(display)), 0, 0, 0, 0, pointer.x+xdist, pointer.y+ydist);
-
-	XFlush(display);
-	XCloseDisplay(display);
-
-}
-
-
-/* Causes a mouse click, woo!
-   Thanks to daniels in #xorg for recommending XTest
-   instead of the hundred-line monstrosity I had before. */
-void clickPointer (unsigned int button)
-{
-	Display *display = XOpenDisplay(NULL);
-
-	XTestFakeButtonEvent(display, button, 1, 0);
-	XTestFakeButtonEvent(display, button, 0, 0);
-
-	XFlush(display);
-	XCloseDisplay(display);
-}
-
-/* Closes the Focused Window */
-void closeFocusedWindow ()
-{
-	Display *display = XOpenDisplay(NULL);
-	Window focused;
-	int revert;
-
-	XGetInputFocus(display, &focused, &revert);
-
-	if(focused != None)
-	{
-		XDestroyWindow(display, focused);
-	}
-
-	XCloseDisplay(display);
-}
-
 
 /* Sends a key press event to the current window */
 void pressKey (unsigned int key)
@@ -470,6 +417,8 @@ int main (int argc, char *argv[])
 	/* Loop until an available joystick is found */
 	while (1)
 	{
+		mouse_begin();
+
 
 		/* Open Joystick device */
 		while ((joyFD = open(device, O_RDONLY | O_NONBLOCK)) == -1)
@@ -572,7 +521,7 @@ int main (int argc, char *argv[])
 							
 							if (numButtonsPushed == 1)
 							{
-								closeFocusedWindow();
+								mouse_close_focused_window();
 							}
 						}
 					}
@@ -667,6 +616,7 @@ int main (int argc, char *argv[])
 							pointer.yAccel = 0;
 							
 							/* Set keyboard mode */
+							mouse_end();
 							mode = 1;
 						}
 					}
@@ -687,7 +637,7 @@ int main (int argc, char *argv[])
 					diffMilliseconds(button[padconfig.left].pressedTime, button[padconfig.right].pressedTime) <= JUMP_DELAY_MILLISECONDS &&
 					buttonCombo == 0)
 				{
-					clickPointer(Button1);
+					mouse_click(MOUSE_BUTTON_LEFT);
 					buttonCombo = 1;
 				}
 		
@@ -695,7 +645,7 @@ int main (int argc, char *argv[])
 					diffMilliseconds(button[padconfig.up].pressedTime, button[padconfig.down].pressedTime) <= JUMP_DELAY_MILLISECONDS &&
 					buttonCombo == 0)
 				{
-					clickPointer(3);
+					mouse_click(MOUSE_BUTTON_RIGHT);
 					buttonCombo = 1;
 				}
 				
@@ -725,7 +675,7 @@ int main (int argc, char *argv[])
 						
 						//printf("C: %d , S: %d, D: %i, TD: %i xVel:%f\n", (int)((abs(currentTime.tv_sec)*1000)+abs(((currentTime.tv_nsec)/1000000))), (int)((abs(startTime.tv_sec)*1000)+abs(((startTime.tv_nsec)/1000000))), diffMilliseconds(currentTime, startTime), (int)((abs(currentTime.tv_sec)*1000)+abs(((currentTime.tv_nsec)/1000000))) - (int)((abs(startTime.tv_sec)*1000)+abs(((startTime.tv_nsec)/1000000))), pointer.xVel);
 		
-						movePointer((int)pointer.xVel, (int)pointer.yVel);
+						mouse_move((int)pointer.xVel, (int)pointer.yVel);
 						clock_gettime(CLOCK_REALTIME, &lastTime);
 					}
 				}
@@ -1027,6 +977,7 @@ int main (int argc, char *argv[])
 					else if (i == padconfig.start && button[i].state == 1)
 					{
 						mode = 0;
+						mouse_begin();
 						keyboardState = 0;
 						shiftPressed = False;
 					}
@@ -1069,12 +1020,13 @@ int main (int argc, char *argv[])
 			usleep(5000);
 		}
 	
-	/* Joystick disconnected */
-	close(joyFD);
+		/* Joystick disconnected */
+		close(joyFD);
 	
-	/* Reset default modes */
-	mode = 0;
-	keyboardState = 0;
+		/* Reset default modes */
+		mouse_end();
+		mode = 0;
+		keyboardState = 0;
 	
 	}
 	
