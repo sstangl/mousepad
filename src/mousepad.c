@@ -180,42 +180,38 @@ int main (int argc, char *argv[])
 					/* Unpressing pushes the previous pressedTime down one level,
 					   pressing itself just overwrites. */
 					if (button[jevent.number].state == 0)
-					{
 						button[jevent.number].pressedTimeBefore = button[jevent.number].pressedTime;
-					}
 					
 					/* updated pressedTime with the clock */
 					clock_gettime(CLOCK_REALTIME, &button[jevent.number].pressedTime);
-					
 					button[jevent.number].processed = 0;
-
 					button[jevent.number].state = jevent.value;
-				}
 
-				/*
-				 * Translate jevent.number to the button bitfield.
-				 * This is a temporary hack because I feel lazy.
-				 */
-				if (jevent.number == padconfig.left)
-					changed = BUTTON_LEFT;
-				else if (jevent.number == padconfig.upleft)
-					changed = BUTTON_UPLEFT;
-				else if (jevent.number == padconfig.up)
-					changed = BUTTON_UP;
-				else if (jevent.number == padconfig.upright)
-					changed = BUTTON_UPRIGHT;
-				else if (jevent.number == padconfig.right)
-					changed = BUTTON_RIGHT;
-				else if (jevent.number == padconfig.downright)
-					changed = BUTTON_DOWNRIGHT;
-				else if (jevent.number == padconfig.down)
-					changed = BUTTON_DOWN;
-				else if (jevent.number == padconfig.downleft)
-					changed = BUTTON_DOWNLEFT;
-				else if (jevent.number == padconfig.start)
-					changed = BUTTON_START;
-				else if (jevent.number == padconfig.back)
-					changed = BUTTON_BACK;
+					/*
+					 * Translate jevent.number to the button bitfield.
+					 * This is a temporary hack because I feel lazy.
+					 */
+					if (jevent.number == padconfig.left)
+						changed = BUTTON_LEFT;
+					else if (jevent.number == padconfig.upleft)
+						changed = BUTTON_UPLEFT;
+					else if (jevent.number == padconfig.up)
+						changed = BUTTON_UP;
+					else if (jevent.number == padconfig.upright)
+						changed = BUTTON_UPRIGHT;
+					else if (jevent.number == padconfig.right)
+						changed = BUTTON_RIGHT;
+					else if (jevent.number == padconfig.downright)
+						changed = BUTTON_DOWNRIGHT;
+					else if (jevent.number == padconfig.down)
+						changed = BUTTON_DOWN;
+					else if (jevent.number == padconfig.downleft)
+						changed = BUTTON_DOWNLEFT;
+					else if (jevent.number == padconfig.start)
+						changed = BUTTON_START;
+					else if (jevent.number == padconfig.back)
+						changed = BUTTON_BACK;
+				}
 			}
 
 			/* 
