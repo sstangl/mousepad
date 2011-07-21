@@ -23,6 +23,9 @@
 #include <X11/X.h>
 #include <X11/Xlib.h>
 
+#define CALCULATED_WIDTH (screenWidth/5)
+#define DISTANCE_FROM_CORNER 20
+
 Display *display;
 
 int keygtk_init(Display *d)

@@ -53,7 +53,7 @@ int mouse_init(Display *d)
 	if (d == NULL) return -1;
 
 	display = d;
-	clock_gettime(CLOCK_REALTIME, &prevtime); // To initialize.
+	clock_gettime(CLOCK_REALTIME, &prevtime);
 	return 0;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Mousepad
+ * mousepad.c
  * Copyright Sean Stangl <sean.stangl@gmail.com> 2005-2011
  *
  * This file is part of Mousepad.
@@ -51,21 +51,6 @@
 #define JUMP_DELAY_MILLISECONDS 100
 #define DOUBLE_TAP_TIME_MILLISECONDS 160
 
-/* Keyboard states */
-#define KEYBOARD_STATE_NONE 0
-#define KEYBOARD_STATE_LEFT 1
-#define KEYBOARD_STATE_UP 2
-#define KEYBOARD_STATE_RIGHT 3
-#define KEYBOARD_STATE_DOWN 4
-#define KEYBOARD_STATE_UPLEFT 5
-#define KEYBOARD_STATE_UPRIGHT 6
-#define KEYBOARD_STATE_DOWNRIGHT 7
-#define KEYBOARD_STATE_DOWNLEFT 8
-
-/* Keyboard Indicator Constants */
-#define CALCULATED_WIDTH screenWidth/5    /* screenWidth, screenHeight valid ints */
-#define DISTANCE_FROM_CORNER 20
-
 /******************************************************/
 
 /* Structure for each button */
@@ -83,10 +68,6 @@ struct timespec keySentTime; /* The time when a keystroke (of any kind) was sent
 
 /* State of the shift mechanism, global. */
 char shiftPressed = False;
-
-/* State of the keyboard mechanism, global. */
-char keyboardState = KEYBOARD_STATE_NONE;
-//static pthread_mutex_t stateMutex = PTHREAD_MUTEX_INITIALIZER;
 
 char mode = 0; /* Boolean mode. 0 if mouse mode, 1 if keyboard mode. Toggled by Start. */
 
@@ -138,7 +119,6 @@ int main (int argc, char *argv[])
 	/* Read in configuration file */
 	configfile = config_open();
 	
-	/* Die if no config file */
 	if (configfile == NULL)
 	{
 		fprintf(stderr, " Couldn't find a pad configuration file.\n Run "PROGRAM_NAME"-config to build one.\n");
@@ -155,12 +135,12 @@ int main (int argc, char *argv[])
 	if (mouse_init(display) < 0) return -1;
 	if (keyboard_init(display) < 0) return -1;
 	
-	/* Loop until an available joystick is found */
 	while (1)
 	{
 		mouse_begin();
 
 		/* Open Joystick device */
+		// TODO: Make this blocking and have a separate thread for cursor.
 		if ((joyFD = open(device, O_RDONLY | O_NONBLOCK)) < 0)
 		{
 			fprintf(stderr, " Could not open joystick device.\n");
@@ -288,7 +268,7 @@ int main (int argc, char *argv[])
 						{
 							if ((getMilliseconds(button[i].pressedTimeBefore) > getMilliseconds(keySentTime)))
 							{
-								pressKey(XK_Left);
+								keyboard_press(XK_Left);
 							}
 						}
 						else if (button[i].state == 1)
@@ -299,20 +279,20 @@ int main (int argc, char *argv[])
 									keyboardState = KEYBOARD_STATE_LEFT;
 									break;
 								case KEYBOARD_STATE_UP:
-									pressKey(XK_m);
+									keyboard_press(XK_m);
 									break;
 								case KEYBOARD_STATE_RIGHT:
-									pressKey(XK_r);
+									keyboard_press(XK_r);
 									break;
 								case KEYBOARD_STATE_DOWN:
-									pressKey(XK_w);
+									keyboard_press(XK_w);
 									break;
 								case KEYBOARD_STATE_UPLEFT:
-									pressKey(XK_6);
+									keyboard_press(XK_6);
 									break;
 								case KEYBOARD_STATE_UPRIGHT:
 									shiftPressed = True;
-									pressKey(XK_question);
+									keyboard_press(XK_question);
 									break;
 							}
 						}
@@ -331,19 +311,19 @@ int main (int argc, char *argv[])
 									keyboardState = KEYBOARD_STATE_UPLEFT;
 									break;
 								case KEYBOARD_STATE_LEFT:
-									pressKey(XK_a);
+									keyboard_press(XK_a);
 									break;
 								case KEYBOARD_STATE_UP:
-									pressKey(XK_n);
+									keyboard_press(XK_n);
 									break;
 								case KEYBOARD_STATE_RIGHT:
-									pressKey(XK_s);
+									keyboard_press(XK_s);
 									break;
 								case KEYBOARD_STATE_DOWN:
-									pressKey(XK_x);
+									keyboard_press(XK_x);
 									break;
 								case KEYBOARD_STATE_UPRIGHT:
-									pressKey(XK_comma);
+									keyboard_press(XK_comma);
 									break;
 							}
 						}
@@ -360,7 +340,7 @@ int main (int argc, char *argv[])
 						{
 							if ((getMilliseconds(button[i].pressedTimeBefore) > getMilliseconds(keySentTime)))
 							{
-								pressKey(XK_Up);
+								keyboard_press(XK_Up);
 							}
 						}
 						else if (button[i].state == 1)
@@ -371,19 +351,19 @@ int main (int argc, char *argv[])
 									keyboardState = KEYBOARD_STATE_UP;
 									break;
 								case KEYBOARD_STATE_LEFT:
-									pressKey(XK_b);
+									keyboard_press(XK_b);
 									break;
 								case KEYBOARD_STATE_RIGHT:
-									pressKey(XK_t);
+									keyboard_press(XK_t);
 									break;
 								case KEYBOARD_STATE_DOWN:
-									pressKey(XK_y);
+									keyboard_press(XK_y);
 									break;
 								case KEYBOARD_STATE_UPLEFT:
-									pressKey(XK_0);
+									keyboard_press(XK_0);
 									break;
 								case KEYBOARD_STATE_UPRIGHT:
-									pressKey(XK_period);
+									keyboard_press(XK_period);
 									break;
 							}
 						}
@@ -402,19 +382,19 @@ int main (int argc, char *argv[])
 									keyboardState = KEYBOARD_STATE_UPRIGHT;
 									break;
 								case KEYBOARD_STATE_LEFT:
-									pressKey(XK_c);
+									keyboard_press(XK_c);
 									break;
 								case KEYBOARD_STATE_UP:
-									pressKey(XK_h);
+									keyboard_press(XK_h);
 									break;
 								case KEYBOARD_STATE_RIGHT:
-									pressKey(XK_u);
+									keyboard_press(XK_u);
 									break;
 								case KEYBOARD_STATE_DOWN:
-									pressKey(XK_z);
+									keyboard_press(XK_z);
 									break;
 								case KEYBOARD_STATE_UPLEFT:
-									pressKey(XK_1);
+									keyboard_press(XK_1);
 									break;
 							}
 						}
@@ -431,7 +411,7 @@ int main (int argc, char *argv[])
 						{
 							if ((getMilliseconds(button[i].pressedTimeBefore) > getMilliseconds(keySentTime)))
 							{
-								pressKey(XK_Right);
+								keyboard_press(XK_Right);
 							}
 						}
 						else if (button[i].state == 1)
@@ -442,19 +422,19 @@ int main (int argc, char *argv[])
 									keyboardState = KEYBOARD_STATE_RIGHT;
 									break;
 								case KEYBOARD_STATE_LEFT:
-									pressKey(XK_d);
+									keyboard_press(XK_d);
 									break;
 								case KEYBOARD_STATE_UP:
-									pressKey(XK_i);
+									keyboard_press(XK_i);
 									break;
 								case KEYBOARD_STATE_DOWN:
-									pressKey(XK_BackSpace);
+									keyboard_press(XK_BackSpace);
 									break;
 								case KEYBOARD_STATE_UPLEFT:
-									pressKey(XK_2);
+									keyboard_press(XK_2);
 									break;
 								case KEYBOARD_STATE_UPRIGHT:
-									pressKey(XK_7);
+									keyboard_press(XK_7);
 									break;
 							}
 						}
@@ -470,23 +450,23 @@ int main (int argc, char *argv[])
 							switch (keyboardState)
 							{
 								case KEYBOARD_STATE_LEFT:
-									pressKey(XK_e);
+									keyboard_press(XK_e);
 									break;
 								case KEYBOARD_STATE_UP:
-									pressKey(XK_j);
+									keyboard_press(XK_j);
 									break;
 								case KEYBOARD_STATE_RIGHT:
-									pressKey(XK_o);
+									keyboard_press(XK_o);
 									break;
 								case KEYBOARD_STATE_DOWN:
 									shiftPressed = False;
-									pressKey(XK_slash);
+									keyboard_press(XK_slash);
 									break;
 								case KEYBOARD_STATE_UPLEFT:
-									pressKey(XK_3);
+									keyboard_press(XK_3);
 									break;
 								case KEYBOARD_STATE_UPRIGHT:
-									pressKey(XK_8);
+									keyboard_press(XK_8);
 									break;
 							}
 						}
@@ -499,7 +479,7 @@ int main (int argc, char *argv[])
 						{
 							if ((getMilliseconds(button[i].pressedTimeBefore) > getMilliseconds(keySentTime)))
 							{
-								pressKey(XK_Down);
+								keyboard_press(XK_Down);
 							}
 						}
 						else if (button[i].state == 1)
@@ -510,19 +490,19 @@ int main (int argc, char *argv[])
 									keyboardState = KEYBOARD_STATE_DOWN;
 									break;
 								case KEYBOARD_STATE_LEFT:
-									pressKey(XK_f);
+									keyboard_press(XK_f);
 									break;
 								case KEYBOARD_STATE_UP:
-									pressKey(XK_k);
+									keyboard_press(XK_k);
 									break;
 								case KEYBOARD_STATE_RIGHT:
-									pressKey(XK_p);
+									keyboard_press(XK_p);
 									break;
 								case KEYBOARD_STATE_UPLEFT:
-									pressKey(XK_4);
+									keyboard_press(XK_4);
 									break;
 								case KEYBOARD_STATE_UPRIGHT:
-									pressKey(XK_9);
+									keyboard_press(XK_9);
 									break;
 							}
 						}
@@ -538,22 +518,22 @@ int main (int argc, char *argv[])
 							switch (keyboardState)
 							{
 								case KEYBOARD_STATE_LEFT:
-									pressKey(XK_g);
+									keyboard_press(XK_g);
 									break;
 								case KEYBOARD_STATE_UP:
-									pressKey(XK_l);
+									keyboard_press(XK_l);
 									break;
 								case KEYBOARD_STATE_RIGHT:
-									pressKey(XK_q);
+									keyboard_press(XK_q);
 									break;
 								case KEYBOARD_STATE_DOWN:
-									pressKey(XK_v);
+									keyboard_press(XK_v);
 									break;
 								case KEYBOARD_STATE_UPLEFT:
-									pressKey(XK_5);
+									keyboard_press(XK_5);
 									break;
 								case KEYBOARD_STATE_UPRIGHT:
-									pressKey(XK_apostrophe);
+									keyboard_press(XK_apostrophe);
 									break;
 							}
 						}
@@ -586,7 +566,7 @@ int main (int argc, char *argv[])
 					diffMilliseconds(button[padconfig.left].pressedTime, button[padconfig.right].pressedTime) <= JUMP_DELAY_MILLISECONDS &&
 					buttonCombo == 0)
 				{
-					pressKey(XK_space);
+					keyboard_press(XK_space);
 					buttonCombo = 1;
 				}
 		
@@ -594,7 +574,7 @@ int main (int argc, char *argv[])
 					diffMilliseconds(button[padconfig.up].pressedTime, button[padconfig.down].pressedTime) <= JUMP_DELAY_MILLISECONDS &&
 					buttonCombo == 0)
 				{
-					pressKey(XK_Return);
+					keyboard_press(XK_Return);
 					buttonCombo = 1;
 				}
 				
@@ -611,9 +591,9 @@ int main (int argc, char *argv[])
 		/* Reset default modes */
 		mouse_end();
 		mode = 0;
-		keyboardState = 0;
-	
+		// TODO: keyboard_begin();
 	}
 	
 	return 0;
 }
+

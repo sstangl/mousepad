@@ -20,6 +20,16 @@
 
 #include "keyboard.h"
 
+#define KEYBOARD_STATE_NONE 0
+#define KEYBOARD_STATE_LEFT 1
+#define KEYBOARD_STATE_UP 2
+#define KEYBOARD_STATE_RIGHT 3
+#define KEYBOARD_STATE_DOWN 4
+#define KEYBOARD_STATE_UPLEFT 5
+#define KEYBOARD_STATE_UPRIGHT 6
+#define KEYBOARD_STATE_DOWNRIGHT 7
+#define KEYBOARD_STATE_DOWNLEFT 8
+
 Display *display;
 int shift = 0; // State of the shift toggle: nonzero if active.
 
