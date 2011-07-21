@@ -80,13 +80,13 @@ int main (int argc, char *argv[])
 	// TODO: Make this blocking and have a separate thread for cursor.
 	if ((joyFD = open(device, O_RDONLY | O_NONBLOCK)) < 0) {
 		fprintf(stderr, " Could not open joystick device.\n");
-		return -1;
+		return 1;
 	}
 		
 	/* Retrieve the number of buttons */
 	ioctl(joyFD, JSIOCGBUTTONS, &numButtons);
 	if (numButtons <= 0)
-		return -1;
+		return 1;
 
 	/* Map from jevent.number to button bitfield. */
 	int *joymap = malloc(numButtons * sizeof(int));
@@ -107,8 +107,8 @@ int main (int argc, char *argv[])
 	config_close(configfile);
 	
 	Display *display = XOpenDisplay(NULL);
-	if (mouse_init(display) < 0) return -1;
-	if (keyboard_init(display) < 0) return -1;
+	if (mouse_init(display) < 0) return 1;
+	if (keyboard_init(display) < 0) return 1;
 	
 	while (1) {
 		mouse_begin();
@@ -119,7 +119,7 @@ int main (int argc, char *argv[])
 			/* Update button values */
 			read(joyFD, &jevent, sizeof(struct js_event));
 			if (errno == ENODEV)
-				break;
+				return 1;
 
 			int changed = 0;
 			if ((jevent.type & ~JS_EVENT_INIT) == JS_EVENT_BUTTON) {
