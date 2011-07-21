@@ -94,7 +94,6 @@ int main (int argc, char *argv[])
 	int numButtons = 0; /* Number of buttons on the joystick */
 	struct btn *button = NULL; /* Stores the properties of each button */
 	FILE *configfile;
-	struct btnconfig padconfig; /* Stores configuration file options: left, up, right, down, etc. */
 	
 	gtk_init(&argc, &argv);
 	
@@ -116,6 +115,26 @@ int main (int argc, char *argv[])
 	}
 
 
+	/* Initialize joystick. */
+	// TODO: Make this blocking and have a separate thread for cursor.
+	if ((joyFD = open(device, O_RDONLY | O_NONBLOCK)) < 0)
+	{
+		fprintf(stderr, " Could not open joystick device.\n");
+		return -1;
+	}
+		
+	/* Retrieve the number of buttons */
+	ioctl(joyFD, JSIOCGBUTTONS, &numButtons);
+	if (numButtons <= 0)
+		return -1;
+
+	/* Allocate an array to store button information */
+	button = (struct btn *) calloc(numButtons, sizeof( struct btn ));
+
+	/* Map from jevent.number to button bitfield. */
+	int *joymap = malloc(numButtons * sizeof(int));
+
+
 	/* Read in configuration file */
 	configfile = config_open();
 	
@@ -125,7 +144,7 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 
-	if (config_read(configfile, &padconfig) < 0) {
+	if (config_read(configfile, numButtons, joymap) < 0) {
 		fprintf(stderr, " Error parsing configuration file.\n");
 		return 1;
 	}
@@ -138,27 +157,8 @@ int main (int argc, char *argv[])
 	while (1)
 	{
 		mouse_begin();
+		int buttons = 0;
 
-		/* Open Joystick device */
-		// TODO: Make this blocking and have a separate thread for cursor.
-		if ((joyFD = open(device, O_RDONLY | O_NONBLOCK)) < 0)
-		{
-			fprintf(stderr, " Could not open joystick device.\n");
-			return -1;
-		}
-		
-		/* Deallocate button array if it was previously allocated */
-		if (numButtons > 0)
-		{
-			free(button);
-		}
-
-		/* Retrieve the number of buttons */
-		ioctl(joyFD, JSIOCGBUTTONS, &numButtons);
-		
-		/* Allocate an array to store button information */
-		button = (struct btn *) calloc(numButtons, sizeof( struct btn ));
-		
 		/* Main loop */
 		while (1)
 		{
@@ -187,49 +187,14 @@ int main (int argc, char *argv[])
 					button[jevent.number].processed = 0;
 					button[jevent.number].state = jevent.value;
 
-					/*
-					 * Translate jevent.number to the button bitfield.
-					 * This is a temporary hack because I feel lazy.
-					 */
-					if (jevent.number == padconfig.left)
-						changed = BUTTON_LEFT;
-					else if (jevent.number == padconfig.upleft)
-						changed = BUTTON_UPLEFT;
-					else if (jevent.number == padconfig.up)
-						changed = BUTTON_UP;
-					else if (jevent.number == padconfig.upright)
-						changed = BUTTON_UPRIGHT;
-					else if (jevent.number == padconfig.right)
-						changed = BUTTON_RIGHT;
-					else if (jevent.number == padconfig.downright)
-						changed = BUTTON_DOWNRIGHT;
-					else if (jevent.number == padconfig.down)
-						changed = BUTTON_DOWN;
-					else if (jevent.number == padconfig.downleft)
-						changed = BUTTON_DOWNLEFT;
-					else if (jevent.number == padconfig.start)
-						changed = BUTTON_START;
-					else if (jevent.number == padconfig.back)
-						changed = BUTTON_BACK;
+					/* Update changed and buttonstate TODO */
+					changed = joymap[jevent.number];
+					if (jevent.value)
+						buttons &= ~changed;
+					else
+						buttons |= changed;
 				}
 			}
-
-			/* 
-			 * Translate this stupid state to buttons/changed.
-			 * This is a temporary hack because I feel lazy.
-			 */
-			buttonstate_t buttons = 0;
-
-			buttons |= button[padconfig.left].state ? BUTTON_LEFT : 0;
-			buttons |= button[padconfig.upleft].state ? BUTTON_UPLEFT : 0;
-			buttons |= button[padconfig.up].state ? BUTTON_UP : 0;
-			buttons |= button[padconfig.upright].state ? BUTTON_UPRIGHT : 0;
-			buttons |= button[padconfig.right].state ? BUTTON_RIGHT : 0;
-			buttons |= button[padconfig.downright].state ? BUTTON_DOWNRIGHT : 0;
-			buttons |= button[padconfig.down].state ? BUTTON_DOWN : 0;
-			buttons |= button[padconfig.downleft].state ? BUTTON_DOWNLEFT : 0;
-			buttons |= button[padconfig.start].state ? BUTTON_START : 0;
-			buttons |= button[padconfig.back].state ? BUTTON_BACK : 0;
 
 
 			/* Process Events */

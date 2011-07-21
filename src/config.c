@@ -19,6 +19,7 @@
  */
 
 #include "config.h"
+#include "mousepad.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,12 +55,13 @@ int config_close(FILE *f)
 	return fclose(f);
 }
 
-/* Fill in the padconfig structure by reading in the configuration file. */
-int config_read(FILE *f, struct btnconfig *padconfig)
+/* 
+ * Create a map from jevent.number to button bitfield.
+ * n is the length of joymap.
+ */
+int config_read(FILE *f, int n, int *joymap)
 {
-	memset(padconfig, 0x0, sizeof(struct btnconfig));
-
-	for (int i = 0; !feof(f); i++) {
+	for (int i = 0; !feof(f) && i < n; i++) {
 		char c;
 		fread(&c, sizeof(char), 1, f);
 
@@ -68,21 +70,22 @@ int config_read(FILE *f, struct btnconfig *padconfig)
 		 * if you imagine them on the left-hand side of the QWERTY keyboard.
 		 */
 		switch (c) {
-			case 'a': padconfig->left      = i; break;
-			case 'q': padconfig->upleft    = i; break;
-			case 'w': padconfig->up        = i; break;
-			case 'e': padconfig->upright   = i; break;
-			case 'd': padconfig->right     = i; break;
-			case 'c': padconfig->downright = i; break;
-			case 'x': padconfig->down      = i; break;
-			case 'z': padconfig->downleft  = i; break;
-			case '1': padconfig->back      = i; break;
-			case '3': padconfig->start     = i; break;
-			case ' ': break; // Skip.
-			default: 
+			case 'a': joymap[i] = BUTTON_LEFT; break;
+			case 'q': joymap[i] = BUTTON_UPLEFT; break;
+			case 'w': joymap[i] = BUTTON_UP; break;
+			case 'e': joymap[i] = BUTTON_UPRIGHT; break;
+			case 'd': joymap[i] = BUTTON_RIGHT; break;
+			case 'c': joymap[i] = BUTTON_DOWNRIGHT; break;
+			case 'x': joymap[i] = BUTTON_DOWN; break;
+			case 'z': joymap[i] = BUTTON_DOWNLEFT; break;
+			case '1': joymap[i] = BUTTON_BACK; break;
+			case '3': joymap[i] = BUTTON_START; break;
+			case ' ': joymap[i] = 0x0; break;
+			default:
 				return -1;
 		}
 	}
 	
 	return 0;
 }
+

@@ -32,7 +32,7 @@ struct btnconfig
 };
 
 FILE *config_open();
-int config_read(FILE *f, struct btnconfig *padconfig);
+int config_read(FILE *f, int n, int *joymap);
 int config_close();
 
 #endif /* __mousepad_config_h__ */
