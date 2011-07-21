@@ -44,55 +44,16 @@
 #include <sys/ioctl.h>
 #include <linux/joystick.h>
 
-/******************************************************/
-
-/* Motion, Button Constants */
-#define INPUT_DELAY_MILLISECONDS 20
-#define JUMP_DELAY_MILLISECONDS 100
-#define DOUBLE_TAP_TIME_MILLISECONDS 160
-
-/******************************************************/
-
-/* Structure for each button */
-struct btn
-{
-	char state; /* False, True for Not pressed, Pressed */
-	char processed; /* Whether a state change has been processed or not */
-	struct timespec pressedTime; /* Time when the button was pressed */
-	struct timespec pressedTimeBefore; /* Previous time when the button was pressed */
-}; /* Array of all buttons and their properties */
-
-/* keySentTime is used to ensure that sending an arrowkey in keyboard mode
-   does not occur unless the particular key is exclusively pressed. */
-struct timespec keySentTime; /* The time when a keystroke (of any kind) was sent */
-
-/* State of the shift mechanism, global. */
-char shiftPressed = False;
-
-char mode = 0; /* Boolean mode. 0 if mouse mode, 1 if keyboard mode. Toggled by Start. */
-
-/******************************************************/
-
-/* Returns the difference in milliseconds between two times */
-int diffMilliseconds (struct timespec time1, struct timespec time2)
-{
-	return abs(1000*(time1.tv_sec-time2.tv_sec)+(time1.tv_nsec-time2.tv_nsec)/1000000);
-}
-
-/* Returns the number of milliseconds elapsed */
-int getMilliseconds (struct timespec time)
-{
-	return (1000*time.tv_sec + time.tv_nsec/1000000);
-}
-
+#define MODE_MOUSE 0
+#define MODE_KEYBOARD 1
 
 int main (int argc, char *argv[])
 {
+	int mode = MODE_MOUSE;
 	char *device = "/dev/input/js0"; /* Joystick device, the only argument taken. */
 	int joyFD; /* Handle for the Joystick */
 	struct js_event jevent; /* Joystick event */
 	int numButtons = 0; /* Number of buttons on the joystick */
-	struct btn *button = NULL; /* Stores the properties of each button */
 	FILE *configfile;
 	
 	gtk_init(&argc, &argv);
@@ -103,7 +64,7 @@ int main (int argc, char *argv[])
 		fprintf(stderr, PROGRAM_NAME": Too many arguments.\n"); 
 		return 1;
 	}
-	else if (argc >= 2)
+	else if (argc == 2)
 	{
 		if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help"))
 		{
@@ -117,8 +78,7 @@ int main (int argc, char *argv[])
 
 	/* Initialize joystick. */
 	// TODO: Make this blocking and have a separate thread for cursor.
-	if ((joyFD = open(device, O_RDONLY | O_NONBLOCK)) < 0)
-	{
+	if ((joyFD = open(device, O_RDONLY | O_NONBLOCK)) < 0) {
 		fprintf(stderr, " Could not open joystick device.\n");
 		return -1;
 	}
@@ -128,9 +88,6 @@ int main (int argc, char *argv[])
 	if (numButtons <= 0)
 		return -1;
 
-	/* Allocate an array to store button information */
-	button = (struct btn *) calloc(numButtons, sizeof( struct btn ));
-
 	/* Map from jevent.number to button bitfield. */
 	int *joymap = malloc(numButtons * sizeof(int));
 
@@ -138,8 +95,7 @@ int main (int argc, char *argv[])
 	/* Read in configuration file */
 	configfile = config_open();
 	
-	if (configfile == NULL)
-	{
+	if (configfile == NULL) {
 		fprintf(stderr, " Couldn't find a pad configuration file.\n Run "PROGRAM_NAME"-config to build one.\n");
 		return 1;
 	}
@@ -154,40 +110,21 @@ int main (int argc, char *argv[])
 	if (mouse_init(display) < 0) return -1;
 	if (keyboard_init(display) < 0) return -1;
 	
-	while (1)
-	{
+	while (1) {
 		mouse_begin();
 		int buttons = 0;
 
 		/* Main loop */
-		while (1)
-		{
+		while (1) {
 			/* Update button values */
 			read(joyFD, &jevent, sizeof(struct js_event));
-			
 			if (errno == ENODEV)
-			{
 				break;
-			}
 
 			int changed = 0;
-
-			if ((jevent.type & ~JS_EVENT_INIT) == JS_EVENT_BUTTON)
-			{
-				/* If change in state */
-				if (button[jevent.number].state != jevent.value)
-				{
-					/* Unpressing pushes the previous pressedTime down one level,
-					   pressing itself just overwrites. */
-					if (button[jevent.number].state == 0)
-						button[jevent.number].pressedTimeBefore = button[jevent.number].pressedTime;
-					
-					/* updated pressedTime with the clock */
-					clock_gettime(CLOCK_REALTIME, &button[jevent.number].pressedTime);
-					button[jevent.number].processed = 0;
-					button[jevent.number].state = jevent.value;
-
-					/* Update changed and buttonstate TODO */
+			if ((jevent.type & ~JS_EVENT_INIT) == JS_EVENT_BUTTON) {
+				/* If the button has changed value */
+				if (((buttons | joymap[jevent.number]) == 0) == (jevent.value == 0)) {
 					changed = joymap[jevent.number];
 					if (jevent.value)
 						buttons &= ~changed;
@@ -196,13 +133,12 @@ int main (int argc, char *argv[])
 				}
 			}
 
-
 			/* Process Events */
-			if (mode == 0) {
+			if (mode == MODE_MOUSE) {
 				if (changed)
 					mouse_event(buttons, changed);
 				mouse_tick();
-			} else {
+			} else if (mode == MODE_KEYBOARD) {
 				if (changed)
 					keyboard_event(buttons, changed);
 			}
