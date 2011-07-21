@@ -127,9 +127,9 @@ int main (int argc, char *argv[])
 				if (((buttons | joymap[jevent.number]) == 0) == (jevent.value == 0)) {
 					changed = joymap[jevent.number];
 					if (jevent.value)
-						buttons &= ~changed;
-					else
 						buttons |= changed;
+					else
+						buttons &= ~changed;
 				}
 			}
 
