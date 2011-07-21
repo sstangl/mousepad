@@ -301,9 +301,10 @@ int main (int argc, char *argv[])
 		mouse_begin();
 
 		/* Open Joystick device */
-		while ((joyFD = open(device, O_RDONLY | O_NONBLOCK)) == -1)
+		if ((joyFD = open(device, O_RDONLY | O_NONBLOCK)) < 0)
 		{
-			usleep(10000);
+			fprintf(stderr, " Could not open joystick device.\n");
+			return -1;
 		}
 		
 		/* Deallocate button array if it was previously allocated */
