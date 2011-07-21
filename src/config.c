@@ -78,6 +78,7 @@ int config_read(FILE *f, struct btnconfig *padconfig)
 			case 'z': padconfig->downleft  = i; break;
 			case '1': padconfig->back      = i; break;
 			case '3': padconfig->start     = i; break;
+			case ' ': break; // Skip.
 			default: 
 				return -1;
 		}
