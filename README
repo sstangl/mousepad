@@ -1,8 +1,8 @@
 
   Mousepad - Use a dance pad for keyboard and mouse input.
-  Copyright Sean Stangl <sean.stangl@gmail.com>, 2005-2010.
+  Copyright Sean Stangl <sean.stangl@gmail.com>, 2005-2011.
 
-  Licensed under the GPLv3. See LICENSE for the full license text.
+  Licensed under the GPLv3+. See LICENSE for the full license text.
 
 USAGE
 
@@ -51,7 +51,7 @@ KEYBOARD CONTROLS
 HISTORY
 
   Mousepad is the first C program I've ever written, back in 2005,
-  shortly after I discovered that Linux existed, and soon after
+  shortly after I discovered that Linux existed, soon after
   a good friend started bringing a foam dance pad to school.
 
   The initial commit of this repository reflects the code as it
