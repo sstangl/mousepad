@@ -23,6 +23,7 @@
 
 #define CONFIG_FILENAME "mousepad.conf"
 
+#include "config.h"
 #include "keyboard.h"
 #include "mouse.h"
 
@@ -95,14 +96,6 @@ struct btn
 /* keySentTime is used to ensure that sending an arrowkey in keyboard mode
    does not occur unless the particular key is exclusively pressed. */
 struct timespec keySentTime; /* The time when a keystroke (of any kind) was sent */
-
-/* Stores the joystick configuration */
-struct btnconfig
-{
-	/* using "unsigned" suppresses gcc warnings */
-	unsigned char left, down, up, right, downleft, downright,
-		upleft, upright, start, back;
-};
 
 /* State of the shift mechanism, global. */
 char shiftPressed = False;
@@ -307,9 +300,7 @@ int main (int argc, char *argv[])
 	int numButtonsPushed = 0; /* Iterator for individual button press logic */
 	int buttonCombo = 0; /* Whether a combination was pressed or not. Used to prevent duplicate events. */
 	FILE *configfile;
-	char *configpath;
 	struct btnconfig padconfig; /* Stores configuration file options: left, up, right, down, etc. */
-	char tmpchar;
 	//pthread_t keyboardThread;
 	
 	gtk_init(&argc, &argv);
@@ -333,30 +324,7 @@ int main (int argc, char *argv[])
 
 
 	/* Read in configuration file */
-	
-	/* First, checks ~/.mousepad.conf
-	   Second, checks /etc/mousepad.conf */
-	for (i = 0; i < 2; i++)
-	{
-		if (i == 0)
-		{
-			if ((configpath = getenv("HOME")) == NULL)
-			{
-				fprintf(stderr, " Environment variable HOME not set.\n");
-				return 1;
-			}
-			configpath = strcat(configpath, "/."CONFIG_FILENAME);
-		}
-		else
-		{
-			configpath = "/etc/"CONFIG_FILENAME;
-		}
-
-		if ((configfile = fopen(configpath, "r")) != NULL)
-		{
-			break;
-		}
-	}
+	configfile = config_open();
 	
 	/* Die if no config file */
 	if (configfile == NULL)
@@ -364,50 +332,12 @@ int main (int argc, char *argv[])
 		fprintf(stderr, " Couldn't find a pad configuration file.\n Run "PROGRAM_NAME"-config to build one.\n");
 		return 1;
 	}
-	
-	/* Zero the memory */
-	memset(&padconfig, 0x0, sizeof(struct btnconfig));
 
-	/* Set padconfig from config file */
-	for (i = 0; feof(configfile) == 0; i++)
-	{
-		fread(&tmpchar, sizeof(char), 1, configfile);
-		switch (tmpchar)
-		{
-			case '1':
-				padconfig.back = i;
-				break;
-			case '3':
-				padconfig.start = i;
-				break;
-			case 'a':
-				padconfig.left = i;
-				break;
-			case 'c':
-				padconfig.downright = i;
-				break;
-			case 'd':
-				padconfig.right = i;
-				break;
-			case 'e':
-				padconfig.upright = i;
-				break;
-			case 'q':
-				padconfig.upleft = i;
-				break;
-			case 'w':
-				padconfig.up = i;
-				break;
-			case 'x':
-				padconfig.down = i;
-				break;
-			case 'z':
-				padconfig.downleft = i;
-				break;
-		}
+	if (config_read(configfile, &padconfig) < 0) {
+		fprintf(stderr, " Error parsing configuration file.\n");
+		return 1;
 	}
-
-	fclose(configfile);
+	config_close(configfile);
 	
 #if 0
 	/* Create the Keyboard Indicator thread */
@@ -422,7 +352,6 @@ int main (int argc, char *argv[])
 	while (1)
 	{
 		mouse_begin();
-
 
 		/* Open Joystick device */
 		while ((joyFD = open(device, O_RDONLY | O_NONBLOCK)) == -1)
@@ -473,7 +402,7 @@ int main (int argc, char *argv[])
 					button[jevent.number].state = jevent.value;
 				}
 			}
-			
+
 			
 			/* Process Events */
 
