@@ -25,8 +25,6 @@
 #include "keyboard.h"
 #include "mouse.h"
 
-#include <pthread.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -103,7 +101,6 @@ char keyboardState = KEYBOARD_STATE_NONE;
 //static pthread_mutex_t stateMutex = PTHREAD_MUTEX_INITIALIZER;
 
 char mode = 0; /* Boolean mode. 0 if mouse mode, 1 if keyboard mode. Toggled by Start. */
-pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 /******************************************************/
 
@@ -312,15 +309,6 @@ int main (int argc, char *argv[])
 	}
 	config_close(configfile);
 	
-#if 0
-	/* Create the Keyboard Indicator thread */
-	pthread_create(&keyboardThread, NULL, gtkThreadMain, NULL);
-	
-	/* Wait for the GTK thread to initialize before continuing */
-	pthread_mutex_lock(&stateMutex);
-	pthread_cond_wait(&cond, &stateMutex);
-#endif
-
 	Display *display = XOpenDisplay(NULL);
 	if (mouse_init(display) < 0) return -1;
 	if (keyboard_init(display) < 0) return -1;
