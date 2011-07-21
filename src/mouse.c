@@ -19,6 +19,7 @@
  */
 
 #include "mouse.h"
+#include "keyboard.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -46,21 +47,29 @@ static int millidiff(struct timespec time, struct timespec prev)
 	           ((time.tv_nsec - prev.tv_nsec) / 1000000));
 }
 
+/* Mouse initialization. */
+int mouse_init(Display *d)
+{
+	if (d == NULL) return -1;
+
+	display = d;
+	clock_gettime(CLOCK_REALTIME, &prevtime); // To initialize.
+	return 0;
+}
+
 /*
  * Begin mouse mode.
  * Either the program is starting, or the mouse has been switched to.
  */
 void mouse_begin()
 {
-	display = XOpenDisplay(NULL);
 	memset(&mouse, 0x0, sizeof(mouse_t));
-	clock_gettime(CLOCK_REALTIME, &prevtime); // To initialize.
 }
 
 /* End mouse mode. */
 void mouse_end()
 {
-	XCloseDisplay(display);
+	return;
 }
 
 /* Moves the mouse relatively. */
@@ -166,13 +175,13 @@ void mouse_event(buttonstate_t buttons, button_t changed)
 
 	/* Press the up-right button (and no other button) to scroll up. */
 	if (buttons == BUTTON_UPRIGHT && changed == BUTTON_UPRIGHT) {
-		// TODO: scroll up.
+		keyboard_press(XK_Page_Up);
 		return;
 	}
 
 	/* Press the down-right button (and no other button) to scroll down. */
 	if (buttons == BUTTON_DOWNRIGHT && changed == BUTTON_DOWNRIGHT) {
-		// TODO: scroll down.
+		keyboard_press(XK_Page_Down);
 		return;
 	}
 	

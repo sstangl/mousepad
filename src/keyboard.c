@@ -18,3 +18,37 @@
  * along with mousepad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "keyboard.h"
+
+Display *display;
+int shift = 0; // State of the shift toggle: nonzero if active.
+
+/* Keyboard initialization. */
+int keyboard_init(Display *d)
+{
+	if (d == NULL) return -1;
+
+	display = d;
+	return 0;
+}
+
+/* Internal wrapper for XTestFakeKeyEvent. */
+static inline int keyboard_keyevent(unsigned key, int pushed)
+{
+	return XTestFakeKeyEvent(display, XKeysymToKeycode(display, key),
+	                         pushed, CurrentTime);
+}
+
+/* Send a key press event to the current window. */
+void keyboard_press(unsigned key)
+{
+	if (shift)
+		keyboard_keyevent(XK_Shift_R, True);
+
+	keyboard_keyevent(key, True);  // press key
+	keyboard_keyevent(key, False); // release key
+
+	if (shift)
+		keyboard_keyevent(XK_Shift_R, False);
+}
+

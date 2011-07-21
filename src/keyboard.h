@@ -18,3 +18,15 @@
  * along with mousepad.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef __mousepad_keyboard_h__
+
+#include <X11/X.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/extensions/XTest.h>
+
+int keyboard_init(Display *d);
+void keyboard_press(unsigned key);
+
+#endif /* __mousepad_keyboard_h__ */
+

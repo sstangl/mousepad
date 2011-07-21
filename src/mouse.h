@@ -23,6 +23,9 @@
 
 #include "mousepad.h"
 
+#include <X11/X.h>
+#include <X11/Xlib.h>
+
 typedef struct
 {
 	float xv, yv; /* velocities */
@@ -33,6 +36,7 @@ typedef struct
 #define MOUSE_BUTTON_LEFT Button1
 #define MOUSE_BUTTON_RIGHT 3
 
+int mouse_init(Display *d);
 void mouse_begin();
 void mouse_end();
 void mouse_move(int xdelta, int ydelta);

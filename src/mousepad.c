@@ -21,8 +21,6 @@
 #define PROGRAM_NAME "mousepad"
 #define VERSION_NUMBER "0.3"
 
-#define CONFIG_FILENAME "mousepad.conf"
-
 #include "config.h"
 #include "keyboard.h"
 #include "mouse.h"
@@ -108,31 +106,6 @@ char mode = 0; /* Boolean mode. 0 if mouse mode, 1 if keyboard mode. Toggled by 
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 /******************************************************/
-
-/* Sends a key press event to the current window */
-void pressKey (unsigned int key)
-{
-	Display *display = XOpenDisplay(NULL);
-	
-	if (shiftPressed == True)
-	{
-		XTestFakeKeyEvent(display, XKeysymToKeycode(display, XK_Shift_R), True, CurrentTime);
-	}
-	
-	XTestFakeKeyEvent(display, XKeysymToKeycode(display, key), True, CurrentTime);
-	XTestFakeKeyEvent(display, XKeysymToKeycode(display, key), False, CurrentTime);
-	
-	if (shiftPressed == True)
-	{
-		XTestFakeKeyEvent(display, XKeysymToKeycode(display, XK_Shift_R), False, CurrentTime);
-		shiftPressed = False;
-	}
-	
-	/* Set the time that this key was sent */
-	clock_gettime(CLOCK_REALTIME, &keySentTime);
-	
-	XCloseDisplay(display);
-}
 
 /* Returns the difference in milliseconds between two times */
 int diffMilliseconds (struct timespec time1, struct timespec time2)
@@ -347,6 +320,10 @@ int main (int argc, char *argv[])
 	pthread_mutex_lock(&stateMutex);
 	pthread_cond_wait(&cond, &stateMutex);
 #endif
+
+	Display *display = XOpenDisplay(NULL);
+	if (mouse_init(display) < 0) return -1;
+	if (keyboard_init(display) < 0) return -1;
 	
 	/* Loop until an available joystick is found */
 	while (1)
@@ -487,7 +464,7 @@ int main (int argc, char *argv[])
 							
 							if (numButtonsPushed == 1)
 							{
-								pressKey(XK_Page_Up);
+								keyboard_press(XK_Page_Up);
 							}
 						}
 					}
@@ -520,7 +497,7 @@ int main (int argc, char *argv[])
 							
 							if (numButtonsPushed == 1)
 							{
-								pressKey(XK_Page_Down);
+								keyboard_press(XK_Page_Down);
 							}
 						}
 					}
