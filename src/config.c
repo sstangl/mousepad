@@ -36,9 +36,9 @@ FILE *config_open()
 	char *home = getenv("HOME");
 	if (home != NULL) {
 		FILE *f;
-		char *path = alloca(strlen(home) + strlen(CONFIG_FILENAME) + 1);
+		char *path = alloca(strlen(home) + strlen("."CONFIG_FILENAME) + 1);
 		strcpy(path, home);
-		strcat(path, CONFIG_FILENAME);
+		strcat(path, "."CONFIG_FILENAME);
 		
 		if ((f = fopen(path, "r")) != NULL)
 			return f;
