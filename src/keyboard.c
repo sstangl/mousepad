@@ -21,16 +21,6 @@
 #include "keyboard.h"
 #include "keygtk.h"
 
-#define KEYBOARD_STATE_NONE 0
-#define KEYBOARD_STATE_LEFT 1
-#define KEYBOARD_STATE_UP 2
-#define KEYBOARD_STATE_RIGHT 3
-#define KEYBOARD_STATE_DOWN 4
-#define KEYBOARD_STATE_UPLEFT 5
-#define KEYBOARD_STATE_UPRIGHT 6
-#define KEYBOARD_STATE_DOWNRIGHT 7
-#define KEYBOARD_STATE_DOWNLEFT 8
-
 Display *display;
 int shift = 0; // State of the shift toggle: nonzero if active.
 
@@ -45,6 +35,7 @@ int keyboard_init(Display *d)
 
 int keyboard_begin()
 {
+	shift = 0;
 	keygtk_set_layout(0x0);
 	keygtk_window_show();
 	return 0;
@@ -93,8 +84,9 @@ void keyboard_event(buttonstate_t buttons, button_t changed)
 		return;
 	}
 
+	/* Disregard general releases. */
 	if (!(buttons & changed)) {
-		return; // disregard general releases.
+		return;
 	}
 
 	/* If only one button is pressed, set the layout. */
@@ -103,343 +95,101 @@ void keyboard_event(buttonstate_t buttons, button_t changed)
 			layout = buttons;
 			keygtk_set_layout(layout);
 		}
+		return;
 	}
 
-
-#if 0
-			/* Keyboard Mode */
-			else
-			{
-				/* Individual Button Pushes */
-				for (i = 0; i < numButtons; i++)
-				{
-					/* Force a delay */
-					clock_gettime(CLOCK_REALTIME, &currentTime);
-					if (diffMilliseconds(currentTime, button[i].pressedTime) <= INPUT_DELAY_MILLISECONDS || button[i].processed == 1)
-					{
-						continue;
-					}
-					
-					/* Handle the different keys */
-					if (i == padconfig.left && buttonCombo == 0)
-					{
-						if (button[i].state == 1
-							&& diffMilliseconds(button[i].pressedTime, button[i].pressedTimeBefore) <= DOUBLE_TAP_TIME_MILLISECONDS
-							&& keyboardState == KEYBOARD_STATE_NONE)
-						{
-							if ((getMilliseconds(button[i].pressedTimeBefore) > getMilliseconds(keySentTime)))
-							{
-								keyboard_press(XK_Left);
-							}
-						}
-						else if (button[i].state == 1)
-						{
-							switch (keyboardState)
-							{
-								case KEYBOARD_STATE_NONE:
-									keyboardState = KEYBOARD_STATE_LEFT;
-									break;
-								case KEYBOARD_STATE_UP:
-									keyboard_press(XK_m);
-									break;
-								case KEYBOARD_STATE_RIGHT:
-									keyboard_press(XK_r);
-									break;
-								case KEYBOARD_STATE_DOWN:
-									keyboard_press(XK_w);
-									break;
-								case KEYBOARD_STATE_UPLEFT:
-									keyboard_press(XK_6);
-									break;
-								case KEYBOARD_STATE_UPRIGHT:
-									shiftPressed = True;
-									keyboard_press(XK_question);
-									break;
-							}
-						}
-						else if (keyboardState == KEYBOARD_STATE_LEFT)
-						{	
-							keyboardState = KEYBOARD_STATE_NONE;
-						}
-					}
-					else if (i == padconfig.upleft && buttonCombo == 0)
-					{
-						if (button[i].state == 1)
-						{
-							switch (keyboardState)
-							{
-								case KEYBOARD_STATE_NONE:
-									keyboardState = KEYBOARD_STATE_UPLEFT;
-									break;
-								case KEYBOARD_STATE_LEFT:
-									keyboard_press(XK_a);
-									break;
-								case KEYBOARD_STATE_UP:
-									keyboard_press(XK_n);
-									break;
-								case KEYBOARD_STATE_RIGHT:
-									keyboard_press(XK_s);
-									break;
-								case KEYBOARD_STATE_DOWN:
-									keyboard_press(XK_x);
-									break;
-								case KEYBOARD_STATE_UPRIGHT:
-									keyboard_press(XK_comma);
-									break;
-							}
-						}
-						else if (keyboardState == KEYBOARD_STATE_UPLEFT)
-						{
-							keyboardState = KEYBOARD_STATE_NONE;
-						}
-					}
-					else if (i == padconfig.up && buttonCombo == 0)
-					{
-						if (button[i].state == 1
-							&& diffMilliseconds(button[i].pressedTime, button[i].pressedTimeBefore) <= DOUBLE_TAP_TIME_MILLISECONDS
-							&& keyboardState == KEYBOARD_STATE_NONE)
-						{
-							if ((getMilliseconds(button[i].pressedTimeBefore) > getMilliseconds(keySentTime)))
-							{
-								keyboard_press(XK_Up);
-							}
-						}
-						else if (button[i].state == 1)
-						{
-							switch (keyboardState)
-							{
-								case KEYBOARD_STATE_NONE:
-									keyboardState = KEYBOARD_STATE_UP;
-									break;
-								case KEYBOARD_STATE_LEFT:
-									keyboard_press(XK_b);
-									break;
-								case KEYBOARD_STATE_RIGHT:
-									keyboard_press(XK_t);
-									break;
-								case KEYBOARD_STATE_DOWN:
-									keyboard_press(XK_y);
-									break;
-								case KEYBOARD_STATE_UPLEFT:
-									keyboard_press(XK_0);
-									break;
-								case KEYBOARD_STATE_UPRIGHT:
-									keyboard_press(XK_period);
-									break;
-							}
-						}
-						else if (keyboardState == KEYBOARD_STATE_UP)
-						{
-							keyboardState = KEYBOARD_STATE_NONE;
-						}
-					}
-					else if (i == padconfig.upright && buttonCombo == 0)
-					{
-						if (button[i].state == 1)
-						{
-							switch (keyboardState)
-							{
-								case KEYBOARD_STATE_NONE:
-									keyboardState = KEYBOARD_STATE_UPRIGHT;
-									break;
-								case KEYBOARD_STATE_LEFT:
-									keyboard_press(XK_c);
-									break;
-								case KEYBOARD_STATE_UP:
-									keyboard_press(XK_h);
-									break;
-								case KEYBOARD_STATE_RIGHT:
-									keyboard_press(XK_u);
-									break;
-								case KEYBOARD_STATE_DOWN:
-									keyboard_press(XK_z);
-									break;
-								case KEYBOARD_STATE_UPLEFT:
-									keyboard_press(XK_1);
-									break;
-							}
-						}
-						else if (keyboardState == KEYBOARD_STATE_UPRIGHT)
-						{
-							keyboardState = KEYBOARD_STATE_NONE;
-						}
-					}
-					else if (i == padconfig.right && buttonCombo == 0)
-					{
-						if (button[i].state == 1
-							&& diffMilliseconds(button[i].pressedTime, button[i].pressedTimeBefore) <= DOUBLE_TAP_TIME_MILLISECONDS
-							&& keyboardState == KEYBOARD_STATE_NONE)
-						{
-							if ((getMilliseconds(button[i].pressedTimeBefore) > getMilliseconds(keySentTime)))
-							{
-								keyboard_press(XK_Right);
-							}
-						}
-						else if (button[i].state == 1)
-						{
-							switch (keyboardState)
-							{
-								case KEYBOARD_STATE_NONE:
-									keyboardState = KEYBOARD_STATE_RIGHT;
-									break;
-								case KEYBOARD_STATE_LEFT:
-									keyboard_press(XK_d);
-									break;
-								case KEYBOARD_STATE_UP:
-									keyboard_press(XK_i);
-									break;
-								case KEYBOARD_STATE_DOWN:
-									keyboard_press(XK_BackSpace);
-									break;
-								case KEYBOARD_STATE_UPLEFT:
-									keyboard_press(XK_2);
-									break;
-								case KEYBOARD_STATE_UPRIGHT:
-									keyboard_press(XK_7);
-									break;
-							}
-						}
-						else if (keyboardState == KEYBOARD_STATE_RIGHT)
-						{
-							keyboardState = KEYBOARD_STATE_NONE;
-						}
-					}
-					else if (i == padconfig.downright && buttonCombo == 0)
-					{
-						if (button[i].state == 1)
-						{
-							switch (keyboardState)
-							{
-								case KEYBOARD_STATE_LEFT:
-									keyboard_press(XK_e);
-									break;
-								case KEYBOARD_STATE_UP:
-									keyboard_press(XK_j);
-									break;
-								case KEYBOARD_STATE_RIGHT:
-									keyboard_press(XK_o);
-									break;
-								case KEYBOARD_STATE_DOWN:
-									shiftPressed = False;
-									keyboard_press(XK_slash);
-									break;
-								case KEYBOARD_STATE_UPLEFT:
-									keyboard_press(XK_3);
-									break;
-								case KEYBOARD_STATE_UPRIGHT:
-									keyboard_press(XK_8);
-									break;
-							}
-						}
-					}
-					else if (i == padconfig.down && buttonCombo == 0)
-					{
-						if (button[i].state == 1
-							&& diffMilliseconds(button[i].pressedTime, button[i].pressedTimeBefore) <= DOUBLE_TAP_TIME_MILLISECONDS
-							&& keyboardState == KEYBOARD_STATE_NONE)
-						{
-							if ((getMilliseconds(button[i].pressedTimeBefore) > getMilliseconds(keySentTime)))
-							{
-								keyboard_press(XK_Down);
-							}
-						}
-						else if (button[i].state == 1)
-						{
-							switch (keyboardState)
-							{
-								case KEYBOARD_STATE_NONE:
-									keyboardState = KEYBOARD_STATE_DOWN;
-									break;
-								case KEYBOARD_STATE_LEFT:
-									keyboard_press(XK_f);
-									break;
-								case KEYBOARD_STATE_UP:
-									keyboard_press(XK_k);
-									break;
-								case KEYBOARD_STATE_RIGHT:
-									keyboard_press(XK_p);
-									break;
-								case KEYBOARD_STATE_UPLEFT:
-									keyboard_press(XK_4);
-									break;
-								case KEYBOARD_STATE_UPRIGHT:
-									keyboard_press(XK_9);
-									break;
-							}
-						}
-						else if (keyboardState == KEYBOARD_STATE_DOWN)
-						{
-							keyboardState = KEYBOARD_STATE_NONE;
-						}
-					}
-					else if (i == padconfig.downleft && buttonCombo == 0)
-					{
-						if (button[i].state == 1)
-						{
-							switch (keyboardState)
-							{
-								case KEYBOARD_STATE_LEFT:
-									keyboard_press(XK_g);
-									break;
-								case KEYBOARD_STATE_UP:
-									keyboard_press(XK_l);
-									break;
-								case KEYBOARD_STATE_RIGHT:
-									keyboard_press(XK_q);
-									break;
-								case KEYBOARD_STATE_DOWN:
-									keyboard_press(XK_v);
-									break;
-								case KEYBOARD_STATE_UPLEFT:
-									keyboard_press(XK_5);
-									break;
-								case KEYBOARD_STATE_UPRIGHT:
-									keyboard_press(XK_apostrophe);
-									break;
-							}
-						}
-					}
-					else if (i == padconfig.start && button[i].state == 1)
-					{
-						mode = 0;
-						mouse_begin();
-						keyboardState = 0;
-						shiftPressed = False;
-					}
-					else if (i == padconfig.back && button[i].state == 1)
-					{
-						/* Toggle shift */
-						shiftPressed = shiftPressed ^ 1;
-					}
-
-					clock_gettime(CLOCK_REALTIME, &startTime);
-					button[i].processed = 1;
-					numButtonsPushed = 0;
-
-					/* A button has just been unpressed, and the combo broken */
-					if (button[i].state == 0) {
-						buttonCombo = 0;
-					}
-				}
-				
-				/* Button Combinations */
-				if (button[padconfig.left].state  == 1 && button[padconfig.right].state  == 1 &&
-					diffMilliseconds(button[padconfig.left].pressedTime, button[padconfig.right].pressedTime) <= JUMP_DELAY_MILLISECONDS &&
-					buttonCombo == 0)
-				{
-					keyboard_press(XK_space);
-					buttonCombo = 1;
-				}
-		
-				if (button[padconfig.up].state  == 1 && button[padconfig.down].state == 1 &&
-					diffMilliseconds(button[padconfig.up].pressedTime, button[padconfig.down].pressedTime) <= JUMP_DELAY_MILLISECONDS &&
-					buttonCombo == 0)
-				{
-					keyboard_press(XK_Return);
-					buttonCombo = 1;
-				}
-				
+	// TODO: Handle double-tapping for arrow key pressing.
+	
+	/* Otherwise, type the key that was just selected. */
+	int k = 0;
+	switch (layout) {
+		case BUTTON_LEFT: {
+			switch (changed) {
+				case BUTTON_UPLEFT:    k = XK_a; break;
+				case BUTTON_UP:        k = XK_b; break;
+				case BUTTON_UPRIGHT:   k = XK_c; break;
+				case BUTTON_RIGHT:     k = XK_d; break;
+				case BUTTON_DOWNRIGHT: k = XK_e; break;
+				case BUTTON_DOWN:      k = XK_f; break;
+				case BUTTON_DOWNLEFT:  k = XK_g; break;
+				default: return;
 			}
-#endif
+			break;
+		}
+
+		case BUTTON_UP: {
+			switch (changed) {
+				case BUTTON_UPRIGHT:   k = XK_h; break;
+				case BUTTON_RIGHT:     k = XK_i; break;
+				case BUTTON_DOWNRIGHT: k = XK_j; break;
+				case BUTTON_DOWN:      k = XK_k; break;
+				case BUTTON_DOWNLEFT:  k = XK_l; break;
+				case BUTTON_LEFT:      k = XK_m; break;
+				case BUTTON_UPLEFT:    k = XK_n; break;
+				default: return;
+			}
+			break;
+		}
+
+		case BUTTON_RIGHT: {
+			switch (changed) {
+				case BUTTON_DOWNRIGHT: k = XK_o; break;
+				case BUTTON_DOWN:      k = XK_p; break;
+				case BUTTON_DOWNLEFT:  k = XK_q; break;
+				case BUTTON_LEFT:      k = XK_r; break;
+				case BUTTON_UPLEFT:    k = XK_s; break;
+				case BUTTON_UP:        k = XK_t; break;
+				case BUTTON_UPRIGHT:   k = XK_u; break;
+				default: return;
+			}
+			break;
+		}
+
+		case BUTTON_DOWN: {
+			switch (changed) {
+				case BUTTON_DOWNLEFT:  k = XK_v; break;
+				case BUTTON_LEFT:      k = XK_w; break;
+				case BUTTON_UPLEFT:    k = XK_x; break;
+				case BUTTON_UP:        k = XK_y; break;
+				case BUTTON_UPRIGHT:   k = XK_z; break;
+				case BUTTON_RIGHT:     k = XK_BackSpace; break;
+				case BUTTON_DOWNRIGHT: k = XK_slash; break;
+				default: return;
+			}
+			break;
+		}
+
+		case BUTTON_UPLEFT: {
+			switch (changed) {
+				case BUTTON_UP:        k = XK_0; break;
+				case BUTTON_UPRIGHT:   k = XK_1; break;
+				case BUTTON_RIGHT:     k = XK_2; break;
+				case BUTTON_DOWNRIGHT: k = XK_3; break;
+				case BUTTON_DOWN:      k = XK_4; break;
+				case BUTTON_DOWNLEFT:  k = XK_5; break;
+				case BUTTON_LEFT:      k = XK_6; break;
+				default: return;
+			}
+			break;
+		}
+
+		case BUTTON_UPRIGHT: {
+			switch (changed) {
+				case BUTTON_RIGHT:     k = XK_7; break;
+				case BUTTON_DOWNRIGHT: k = XK_8; break;
+				case BUTTON_DOWN:      k = XK_9; break;
+				case BUTTON_DOWNLEFT:  k = XK_apostrophe; break;
+				case BUTTON_LEFT:      k = XK_question; break;
+				case BUTTON_UPLEFT:    k = XK_comma; break;
+				case BUTTON_UP:        k = XK_period; break;
+				default: return;
+			}
+			break;
+		}
+
+		default: return;
+	}
+
+	keyboard_press(k);
 }
 
