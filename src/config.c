@@ -80,7 +80,9 @@ int config_read(FILE *f, int n, int *joymap)
 			case 'z': joymap[i] = BUTTON_DOWNLEFT; break;
 			case '1': joymap[i] = BUTTON_BACK; break;
 			case '3': joymap[i] = BUTTON_START; break;
-			case ' ': joymap[i] = 0x0; break;
+			case ' ':  /* fall through */
+			case '\r': /* fall through */
+			case '\n': joymap[i] = 0x0; break;
 			default:
 				return -1;
 		}
