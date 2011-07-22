@@ -24,6 +24,9 @@
 #include <X11/Xlib.h>
 
 int keygtk_init(Display *d);
+void keygtk_window_show();
+void keygtk_window_hide();
+int keygtk_set_layout(int layout);
 
 #endif /* __mousepad_keygtk_h__ */
 

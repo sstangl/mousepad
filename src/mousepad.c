@@ -50,24 +50,21 @@
 int main (int argc, char *argv[])
 {
 	int mode = MODE_MOUSE;
-	char *device = "/dev/input/js0"; /* Joystick device, the only argument taken. */
-	int joyFD; /* Handle for the Joystick */
-	struct js_event jevent; /* Joystick event */
-	int numButtons = 0; /* Number of buttons on the joystick */
+	char *device = "/dev/input/js0";
+	int joyfd;
+	struct js_event jevent;
+	int njoybtn;
 	FILE *configfile;
 	
 	gtk_init(&argc, &argv);
 	
-	/* Handle arguments manually without getopt(). */
-	if (argc > 2)
-	{
+	if (argc > 2) {
 		fprintf(stderr, PROGRAM_NAME": Too many arguments.\n"); 
 		return 1;
 	}
-	else if (argc == 2)
-	{
-		if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help"))
-		{
+
+	if (argc == 2) {
+		if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) {
 			fprintf(stdout, "Usage: %s [Joystick Device]\n", argv[0]);
 			return 0;
 		} else {
@@ -78,38 +75,41 @@ int main (int argc, char *argv[])
 
 	/* Initialize joystick. */
 	// TODO: Make this blocking and have a separate thread for cursor.
-	if ((joyFD = open(device, O_RDONLY | O_NONBLOCK)) < 0) {
+	if ((joyfd = open(device, O_RDONLY | O_NONBLOCK)) < 0) {
 		fprintf(stderr, " Could not open joystick device.\n");
 		return 1;
 	}
 		
 	/* Retrieve the number of buttons */
-	ioctl(joyFD, JSIOCGBUTTONS, &numButtons);
-	if (numButtons <= 0)
+	ioctl(joyfd, JSIOCGBUTTONS, &njoybtn);
+	if (njoybtn <= 0)
 		return 1;
 
 	/* Map from jevent.number to button bitfield. */
-	int *joymap = malloc(numButtons * sizeof(int));
+	int *joymap = malloc(njoybtn * sizeof(int));
 
 
 	/* Read in configuration file */
 	configfile = config_open();
-	
 	if (configfile == NULL) {
-		fprintf(stderr, " Couldn't find a pad configuration file.\n Run "PROGRAM_NAME"-config to build one.\n");
+		fprintf(stderr, " Couldn't find a pad configuration file.\n"
+		                " Run "PROGRAM_NAME"-config to build one.\n");
 		return 1;
 	}
 
-	if (config_read(configfile, numButtons, joymap) < 0) {
+	if (config_read(configfile, njoybtn, joymap) < 0) {
 		fprintf(stderr, " Error parsing configuration file.\n");
 		return 1;
 	}
 	config_close(configfile);
 	
+
+	/* Initialize event handlers. */
 	Display *display = XOpenDisplay(NULL);
 	if (mouse_init(display) < 0) return 1;
 	if (keyboard_init(display) < 0) return 1;
 	
+
 	while (1) {
 		mouse_begin();
 		int buttons = 0;
@@ -117,7 +117,7 @@ int main (int argc, char *argv[])
 		/* Main loop */
 		while (1) {
 			/* Update button values */
-			read(joyFD, &jevent, sizeof(struct js_event));
+			read(joyfd, &jevent, sizeof(struct js_event));
 			if (errno == ENODEV)
 				return 1;
 
@@ -148,7 +148,7 @@ int main (int argc, char *argv[])
 		}
 	
 		/* Joystick disconnected */
-		close(joyFD);
+		close(joyfd);
 	
 		/* Reset default modes */
 		mouse_end();
@@ -156,6 +156,7 @@ int main (int argc, char *argv[])
 		// TODO: keyboard_begin();
 	}
 	
+	free(joymap);
 	return 0;
 }
 

@@ -19,6 +19,7 @@
  */
 
 #include "keyboard.h"
+#include "keygtk.h"
 
 #define KEYBOARD_STATE_NONE 0
 #define KEYBOARD_STATE_LEFT 1
@@ -39,6 +40,19 @@ int keyboard_init(Display *d)
 	if (d == NULL) return -1;
 
 	display = d;
+	return keygtk_init(d);
+}
+
+int keyboard_begin()
+{
+	keygtk_set_layout(0x0);
+	keygtk_window_show();
+	return 0;
+}
+
+int keyboard_end()
+{
+	keygtk_window_hide();
 	return 0;
 }
 
@@ -62,8 +76,36 @@ void keyboard_press(unsigned key)
 		keyboard_keyevent(XK_Shift_R, False);
 }
 
+/*
+ * The keyboard is modal: pressing the first button sets the mode,
+ *  modifying keyboard layout; the second button then selects the letter
+ *  from those available within that mode.
+ */
 void keyboard_event(buttonstate_t buttons, button_t changed)
 {
+	static int layout = 0x0;
+
+	if (!changed) return;
+
+	if (!buttons) {
+		layout = 0x0;
+		keygtk_set_layout(layout);
+		return;
+	}
+
+	if (!(buttons & changed)) {
+		return; // disregard general releases.
+	}
+
+	/* If only one button is pressed, set the layout. */
+	if (buttons && (buttons & (buttons - 1)) == 0) {
+		if (buttons != BUTTON_START && buttons != BUTTON_BACK) {
+			layout = buttons;
+			keygtk_set_layout(layout);
+		}
+	}
+
+
 #if 0
 			/* Keyboard Mode */
 			else
